@@ -480,18 +480,20 @@ where
     let mut nulls = null_indices;
 
     let valids_len = valids.len();
-    let nulls_len = nulls.len();
+    let mut nulls_len = nulls.len();
     let mut len = values.len();
 
     if let Some(limit) = limit {
         len = limit.min(len);
+        // count how many nulls are present in the limit
+        nulls_len = nulls.iter().filter(|&idx| *idx as usize <= limit).count();
     }
     if !descending {
-        sort_by(&mut valids, len.saturating_sub(nulls_len), |a, b| {
+        sort_by(&mut valids, len - nulls_len, |a, b| {
             cmp(a.1, b.1)
         });
     } else {
-        sort_by(&mut valids, len.saturating_sub(nulls_len), |a, b| {
+        sort_by(&mut valids, len - nulls_len, |a, b| {
             cmp(a.1, b.1).reverse()
         });
         // reverse to keep a stable ordering
@@ -1442,7 +1444,7 @@ mod tests {
                 nulls_first: true,
             }),
             Some(3),
-            vec![None, None, Some(2)],
+            vec![None, Some(2), Some(0)],
         );
 
         test_sort_primitive_arrays::<Float32Type>(
